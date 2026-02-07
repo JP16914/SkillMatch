@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  role          Role     @default(USER)
+  jobs          Job[]
+  resumes       Resume[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Job {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  company         String
+  title           String
+  url             String?
+  stage           JobStage  @default(SAVED)
+  deadline        DateTime?
+  notes           String?
+  descriptionText String?   @db.Text
+  matchScore      Float?
+  matchDetails    Json?
+  tags            Tag[]     @relation("JobTags")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("jobs")
+}
+
+enum JobStage {
+  SAVED
+  APPLIED
+  OA
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+model Tag {
+  id     String @id @default(uuid())
+  name   String
+  userId String
+  jobs   Job[]  @relation("JobTags")
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model Resume {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  fileKey       String
+  fileUrl       String?
+  extractedText String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  @@map("resumes")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  type      String
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  entity    String
+  action    String
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
