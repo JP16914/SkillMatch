@@ -12,21 +12,42 @@ model User {
   email         String   @unique
   passwordHash  String
   role          Role     @default(USER)
+  profile       UserProfile?
   jobs          Job[]
   resumes       Resume[]
   notifications Notification[]
   auditLogs     AuditLog[]
+  savedJobs     SavedJob[]
+  applications  Application[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@map("users")
 }
 
-enum Role {
-  USER
-  ADMIN
+model UserProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  firstName String?
+  lastName  String?
+  username  String?  @unique
+  phone     String?
+  location  String?
+  headline  String?
+  summary   String?  @db.Text
+  links     Json?    // links[]
+  skills    String[] // skills[]
+  education  Json?
+  experience Json?
+  projects   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("user_profiles")
 }
 
+// Existing Job model (User's personal tracker)
 model Job {
   id              String    @id @default(uuid())
   userId          String
@@ -45,6 +66,88 @@ model Job {
   updatedAt       DateTime  @updatedAt
 
   @@map("jobs")
+}
+
+// --- NEW MARKETPLACE MODELS ---
+
+model Company {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  logoUrl     String?
+  description String?          @db.Text
+  website     String?
+  jobs        MarketplaceJob[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("companies")
+}
+
+model MarketplaceJob {
+  id          String        @id @default(uuid())
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id])
+  status      JobStatus     @default(OPEN)
+  title       String
+  location    String
+  remote      Boolean       @default(false)
+  description String        @db.Text
+  skills      String[]
+  level       JobLevel
+  applyUrl    String?
+  postedAt    DateTime      @default(now())
+  savedBy     SavedJob[]
+  applies     Application[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("marketplace_jobs")
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+}
+
+enum JobLevel {
+  INTERN
+  NEW_GRAD
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+}
+
+model SavedJob {
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  marketplaceJobId String
+  job              MarketplaceJob @relation(fields: [marketplaceJobId], references: [id])
+  createdAt        DateTime       @default(now())
+
+  @@id([userId, marketplaceJobId])
+  @@map("saved_jobs")
+}
+
+model Application {
+  id               String         @id @default(uuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  marketplaceJobId String
+  job              MarketplaceJob @relation(fields: [marketplaceJobId], references: [id])
+  stage            JobStage       @default(APPLIED)
+  appliedAt        DateTime       @default(now())
+  matchScore       Float?
+  matchDetails     Json?
+
+  @@map("marketplace_applications")
+}
+
+// --- END NEW MARKETPLACE MODELS ---
+
+enum Role {
+  USER
+  ADMIN
 }
 
 enum JobStage {
@@ -73,6 +176,7 @@ model Resume {
   fileKey       String
   fileUrl       String?
   extractedText String?  @db.Text
+  parsedJson    Json?
   createdAt     DateTime @default(now())
 
   @@map("resumes")

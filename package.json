@@ -12,7 +12,10 @@
     "lint": "pnpm -r run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,py}\"",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
-    "infra:down": "docker compose -f infra/docker-compose.yml down"
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "db:migrate": "cd apps/api && npx prisma migrate dev",
+    "db:seed": "cd apps/api && npx prisma db seed",
+    "db:studio": "cd apps/api && npx prisma studio"
   },
   "devDependencies": {
     "prettier": "^3.0.0",
